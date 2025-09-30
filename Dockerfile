@@ -4,7 +4,7 @@ FROM node:18
 # Tạo thư mục làm việc trong container
 WORKDIR /app
 
-# Copy file package.json và package-lock.json
+# Copy file package.json và package-lock.json (nếu có)
 COPY package*.json ./
 
 # Cài đặt dependencies

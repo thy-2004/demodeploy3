@@ -23,7 +23,7 @@ jobs:
       # 3. Build và push image lên Docker Hub
       - name: Build and push Docker image
         run: |
-          IMAGE=${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/docker-nodejs-sample:latest
           docker build -t $IMAGE .
           docker push $IMAGE
 
@@ -37,8 +37,8 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_HOST }} << 'EOF'
-            docker pull ${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/docker-nodejs-sample:latest
             docker stop docker-nodejs-sample || true
             docker rm docker-nodejs-sample || true
-            docker run -d -p 3000:3000 --name docker-nodejs-sample ${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+            docker run -d -p 3000:3000 --name docker-nodejs-sample ${{ secrets.DOCKERHUB_USERNAME }}/docker-nodejs-sample:latest
           EOF

@@ -1,20 +1,20 @@
-# Sử dụng Node.js LTS (18 hoặc 20)
+# Sử dụng Node.js LTS
 FROM node:18
 
-# Tạo thư mục app trong container
-WORKDIR /usr/src/app
+# Tạo thư mục làm việc trong container
+WORKDIR /app
 
 # Copy file package.json và package-lock.json
 COPY package*.json ./
 
-# Cài dependencies
-RUN npm install --production
+# Cài đặt dependencies
+RUN npm install
 
-# Copy toàn bộ source code
+# Copy toàn bộ source code vào container
 COPY . .
 
-# App chạy trên port 3000
+# Expose cổng 3000
 EXPOSE 3000
 
-# Lệnh start app
+# Lệnh chạy khi container khởi động
 CMD ["npm", "start"]

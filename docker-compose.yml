@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   app:
-    image: ${DOCKER_USERNAME}/docker-nodejs-sample:latest
+    image: ${DOCKERHUB_USERNAME}/docker-nodejs-sample:latest
     container_name: docker-nodejs-sample
     restart: always
     ports:

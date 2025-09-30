@@ -2,62 +2,43 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main   # chạy khi có code push lên main
+    branches: ["main"]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
-
-  docker:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
+      # 1. Checkout source code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to Docker Hub
+      # 2. Login Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3. Build và push image lên Docker Hub
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
+        run: |
+          IMAGE=${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+          docker build -t $IMAGE .
+          docker push $IMAGE
 
-  deploy:
-    needs: docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to DigitalOcean Droplet via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      # 4. Kết nối SSH đến server
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
-            docker stop nodejs-sample || true
-            docker rm nodejs-sample || true
-            docker run -d -p 80:3000 --name nodejs-sample ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      # 5. Deploy lên server
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_HOST }} << 'EOF'
+            docker pull ${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+            docker stop docker-nodejs-sample || true
+            docker rm docker-nodejs-sample || true
+            docker run -d -p 3000:3000 --name docker-nodejs-sample ${{ secrets.DOCKER_USERNAME }}/docker-nodejs-sample:latest
+          EOF

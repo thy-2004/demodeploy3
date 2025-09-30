@@ -1,0 +1,63 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main   # chạy khi có code push lên main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean Droplet via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
+            docker stop nodejs-sample || true
+            docker rm nodejs-sample || true
+            docker run -d -p 80:3000 --name nodejs-sample ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-sample:latest
